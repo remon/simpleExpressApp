@@ -7,7 +7,8 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const keys = require("../../config/keys");
 const passport = require("passport");
-
+const validateRegisterInput = require("../../validations/register");
+const validateLoginInput = require("../../validations/login");
 router.get("/test", function (req, res) {
 
     res.json({
@@ -17,6 +18,15 @@ router.get("/test", function (req, res) {
 });
 
 router.post("/register", function (req, res) {
+
+    const {
+        errors,
+        isValid
+    } = validateRegisterInput(req.body);
+
+    if (!isValid) {
+        return res.status(400).json(errors)
+    }
     User.findOne({
         email: req.body.email
     }, user => {
@@ -51,6 +61,14 @@ router.post("/register", function (req, res) {
 });
 
 router.post("/login", function (req, res) {
+    const {
+        errors,
+        isValid
+    } = validateLoginInput(req.body);
+
+    if (!isValid) {
+        return res.status(400).json(errors)
+    }
     const email = req.body.email;
     const password = req.body.password;
 
@@ -58,9 +76,8 @@ router.post("/login", function (req, res) {
         email
     }).then(function (user) {
         if (!user) {
-            return res.status(404).json({
-                msg: "User Not found"
-            });
+            errors.email = "User Not Found"
+            return res.status(404).json(errors);
         }
 
         bcrypt.compare(password, user.password).then(function (isMatch) {
@@ -80,9 +97,9 @@ router.post("/login", function (req, res) {
                     })
                 });
             } else {
-                res.status(400).json({
-                    password: "Password is incorrect , try again"
-                })
+
+                errors.password = "Password is incorrect , try again";
+                res.status(400).json(errors);
             }
         });
     });
